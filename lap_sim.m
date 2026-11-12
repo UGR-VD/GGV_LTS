@@ -131,10 +131,13 @@ if ~isempty(apex_sLaps) && isfinite(vCar(end))
     [~, firstApexIdx] = min(abs(sLap - min(apex_sLaps)));
     startCandidate = inf(1, N);
     prevVel = vCar(end);
-    for n = 1:firstApexIdx
+    for n = 1:N
         if n == 1, ds = L - sLap(end); else, ds = sLap(n) - sLap(n - 1); end
         startCandidate(n) = stepSpeed(prevVel, radius(n), true, ds, vLimit(n));
         prevVel = startCandidate(n);
+        % Carry on past the first apex until an existing (slower) pass takes over, so an
+        % apex that does not limit the speed cannot leave a speed spike near the line
+        if n >= firstApexIdx && startCandidate(n) > vCar(n), break, end
     end
     better = isfinite(startCandidate) & startCandidate < vCar;
     vCar(better) = startCandidate(better);

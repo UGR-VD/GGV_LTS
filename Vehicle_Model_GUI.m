@@ -662,7 +662,9 @@ end
         xlabel(ax, 'Speed (m/s)');
         xlim(ax, [0, max(pt.v_top * 1.1, 1)]);
         grid(ax, 'on');
-        title(ax, sprintf('Top speed %.1f m/s   |   %.0f m in %.2f s', pt.v_top, veh.x_accel_length, pt.t_accel));
+        ttl = sprintf('Top speed %.1f m/s   |   %.0f m in %.2f s', pt.v_top, veh.x_accel_length, pt.t_accel);
+        if isfield(pt, 'override') && pt.override, ttl = [ttl '   (user torque curve)']; end
+        title(ax, ttl);
     end
 
     function draw3D()
@@ -857,6 +859,36 @@ if isnan(v)
 else
     s = sprintf(f, v);
 end
+end
+
+function d = validCurveRows(d)
+% Rows of an [rpm, torque] table with both values filled in
+if isempty(d), d = zeros(0, 2); return, end
+d = d(all(isfinite(d(:, 1:2)), 2), 1:2);
+end
+
+function d = readCurveFile(file)
+% [rpm, torque] from a .mat (first numeric variable with 2+ columns) or a text / spreadsheet file
+[~, ~, ext] = fileparts(file);
+if strcmpi(ext, '.mat')
+    s = load(file);
+    names = fieldnames(s);
+    d = [];
+    for k = 1:numel(names)
+        x = s.(names{k});
+        if isnumeric(x) && ismatrix(x) && size(x, 2) >= 2 && size(x, 1) >= 2
+            d = x;
+            break
+        end
+    end
+    if isempty(d), error('No numeric variable with rpm and torque columns found in the .mat file.'); end
+else
+    d = readmatrix(file);
+end
+if size(d, 2) < 2, error('Need rpm in column 1 and torque in column 2.'); end
+d = validCurveRows(double(d));   % drops header rows and blanks
+if size(d, 1) < 2, error('Found fewer than two rpm / torque rows.'); end
+d = sortrows(d, 1);
 end
 
 function f = defaultTrackFile()

@@ -3,6 +3,9 @@ function pt = vehicle_powertrain(veh)
 % Follows the 'HV Powertrain' and 'Acceleration' sheets of UGR27_Vehicle_Dynamics_Spreadsheet.
 % Only the HV powertrain is modelled (the active one in the sheet: rear HV motor, no front motor).
 %
+% With veh.torque_override = true the motor torque comes from veh.torque_override_curve
+% ([rpm, Nm], motor output torque) instead, and the curve's last rpm sets the rev limit.
+%
 % Returns PT with:
 %   .motor_rpm, .motor_torque, .wheel_torque      motor table vs motor rpm (0:100:max rpm)
 %   .v_grid, .wheel_torque_v, .gear_v, .rpm_v      wheel torque vs speed (0:0.1:50 m/s)
@@ -56,6 +59,14 @@ for i = 1:n
     if ~isnan(T), T = min(motor.T_max, T); end
     if T < 0 || isnan(T), T_motor(i) = NaN; else, T_motor(i) = veh.eff_motor * T; end  % AE
 end
+rpm_max = motor.rpm_max;
+pt.override = isfield(veh, 'torque_override') && veh.torque_override;
+if pt.override
+    % User-supplied motor torque curve replaces the motor / accumulator model
+    [rpm, T_motor] = overrideCurve(veh.torque_override_curve);
+    rpm_max = rpm(end);
+    I = NaN(size(rpm));
+end
 % Wheel torque for each gear (AH, AJ, AL, AN)
 wheel_torque = veh.r_final_drive * T_motor * eff_gears * veh.r_gears;   % n x 4
 
@@ -71,7 +82,7 @@ nG = numel(veh.r_gears);
 rpm_g = NaN(m, nG); T_g = NaN(m, nG); P_g = NaN(m, nG);
 for k = 1:nG
     r = r_eff(k) * v_grid / (veh.x_LoadedRadiusR / 1000) / (2 * pi / 60);
-    r(r > motor.rpm_max) = NaN;
+    r(r > rpm_max) = NaN;
     rpm_g(:, k) = r;
     T_g(:, k) = eff_drivetrain * forecastBracket(rpm, wheel_torque(:, k), r);
     P_g(:, k) = round(10 * T_g(:, k) .* r / veh.Nm_to_kW / r_eff(k)) / 10;   % AT = ROUND(T*rpm/J19/N11, 1)
@@ -148,6 +159,29 @@ idx = find(x > veh.x_accel_length, 1);
 if isempty(idx), pt.t_accel = NaN; else, pt.t_accel = t(idx); end
 end
 
+
+function [rpm, T] = overrideCurve(curve)
+% Resample a user [rpm, torque] curve onto a 100 rpm grid from 0 to its last rpm.
+% Below the first rpm the first torque is held; rows with NaN are ignored.
+if isempty(curve) || size(curve, 2) < 2
+    error('vehicle_powertrain:override', 'Torque override is on but no rpm / torque curve has been supplied.');
+end
+curve = double(curve(:, 1:2));
+curve = curve(all(isfinite(curve), 2), :);
+curve = sortrows(curve, 1);
+if size(curve, 1) < 2
+    error('vehicle_powertrain:override', 'The torque override curve needs at least two valid rows.');
+end
+if any(diff(curve(:, 1)) == 0)
+    error('vehicle_powertrain:override', 'The torque override curve has repeated rpm values.');
+end
+if any(curve(:, 1) < 0) || any(curve(:, 2) < 0)
+    error('vehicle_powertrain:override', 'The torque override curve must have rpm and torque >= 0.');
+end
+rpm = unique([(0:100:curve(end, 1))'; curve(end, 1)]);
+T = interp1(curve(:, 1), curve(:, 2), rpm, 'linear');
+T(rpm < curve(1, 1)) = curve(1, 2);
+end
 
 function item = lookupByName(list, name)
 names = cellfun(@char, {list.name}, 'UniformOutput', false);
