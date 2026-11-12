@@ -473,14 +473,14 @@ end
 
         cla(axLapDt);
         if overlay
-            plot(axLapDt, r.s, r.tSim - lg.t, '-', 'Color', [1 1 1], 'LineWidth', 1.2);
+            plot(axLapDt, r.s, r.tSim - lg.t, '-', 'Color', cSim, 'LineWidth', 1.2);
             if strcmp(refName, 'Baseline')
                 ylabel(axLapDt, '\Deltat sim - baseline (s)');
             else
                 ylabel(axLapDt, '\Deltat sim - log (s)');
             end
         else
-            plot(axLapDt, r.s, r.radius, '-', 'Color', [1 1 1], 'LineWidth', 1.2);
+            plot(axLapDt, r.s, r.radius, '-', 'Color', cSim, 'LineWidth', 1.2);
             ylabel(axLapDt, 'Radius (m)');
         end
         grid(axLapDt, 'on');
