@@ -236,6 +236,50 @@ lapInp = [];      % inputs used for lapRes
 baseRes = [];     % baseline lap sim (the first run, or the one picked with "Set as baseline")
 baseInp = [];
 baseFile = '';
+lapLoads = [];    % lap_loads result for lapRes (loads, ride heights, suspension travel around the lap)
+lapCh = [];       % lap_channels table for lapRes + lapLoads (every channel, one row per track point)
+baseCh = [];      % same for the baseline run
+lapShockLim = []; % [fully compressed, fully extended] shock length for lapRes (mm)
+loadsShowBase = false;
+panelSel = {{'Tyre load FL', 'Tyre load FR', 'Tyre load RL', 'Tyre load RR'}, ...
+    {'Front ride height', 'Rear ride height'}, {'Roll', 'Pitch'}, ...
+    {'Shock length FL', 'Shock length FR', 'Shock length RL', 'Shock length RR'}};
+
+% Lap channels tab: every lap sim / lap loads channel, user picks what to plot, and export
+tabLoads = uitab(plotTabs, 'Title', 'Lap Channels');
+gLoads = uigridlayout(tabLoads, [1 2]);
+gLoads.ColumnWidth = {'1x', 330};
+gLoads.Padding = [4 4 4 4];
+gLoadTraces = uigridlayout(gLoads, [4 1]);
+gLoadTraces.Padding = [0 0 0 0];
+gLoadTraces.RowSpacing = 2;
+axLd = gobjects(1, 4);
+for k = 1:4, axLd(k) = uiaxes(gLoadTraces); end
+gLoadSide = uigridlayout(gLoads, [6 1]);
+gLoadSide.RowHeight = {24, 24, '1.3x', 26, '1x', 54};
+gLoadSide.Padding = [0 0 0 0];
+gLoadSide.RowSpacing = 4;
+gX = uigridlayout(gLoadSide, [1 2]);
+gX.Padding = [0 0 0 0];
+gX.ColumnWidth = {70, '1x'};
+uilabel(gX, 'Text', 'X axis');
+ddX = uidropdown(gX, 'Items', {'Distance'}, 'Value', 'Distance', 'ValueChangedFcn', @(~, ~) drawLoads());
+gPanel = uigridlayout(gLoadSide, [1 2]);
+gPanel.Padding = [0 0 0 0];
+gPanel.ColumnWidth = {70, '1x'};
+uilabel(gPanel, 'Text', 'Y channels');
+ddPanel = uidropdown(gPanel, 'Items', {'Plot 1 (top)', 'Plot 2', 'Plot 3', 'Plot 4 (bottom)'}, ...
+    'ValueChangedFcn', @(~, ~) onPanelPick());
+lbCh = uilistbox(gLoadSide, 'Items', {}, 'Multiselect', 'on', 'ValueChangedFcn', @(~, ~) onChannelPick(), ...
+    'Tooltip', 'Ctrl / Shift + click to pick several channels for the selected plot; pick none to hide it');
+gExport = uigridlayout(gLoadSide, [1 2]);
+gExport.Padding = [0 0 0 0];
+gExport.ColumnWidth = {'1x', 130};
+uibutton(gExport, 'Text', 'Export channels...', 'ButtonPushedFcn', @(~, ~) onExportChannels());
+cbExportPlotted = uicheckbox(gExport, 'Text', 'Plotted only', 'Value', false);
+loadsTable = uitable(gLoadSide, 'ColumnName', {'Channel', 'Min', 'Max', 'Unit'}, 'RowName', {}, ...
+    'ColumnEditable', false, 'ColumnWidth', {140, 60, 60, 45});
+loadsNote = uilabel(gLoadSide, 'Text', '', 'WordWrap', 'on', 'VerticalAlignment', 'top');
 view(ax3, -37.5, 30);
 
 btnOutToggle = uibutton(right, 'Text', [char(9662) ' Hide results table'], ...
@@ -248,6 +292,7 @@ outTable.Layout.Row = 3;
 %% Scalar input tabs
 scalarFields = {};
 scalarHandles = {};
+ptGrid = [];
 for t = 1:size(scalarTabs, 1)
     items = scalarTabs{t, 2};
     tab = uitab(inTabs, 'Title', scalarTabs{t, 1});
@@ -269,7 +314,33 @@ for t = 1:size(scalarTabs, 1)
         scalarHandles{end + 1} = h; %#ok<AGROW>
         uilabel(g, 'Text', items{k, 3});
     end
+    if strcmp(scalarTabs{t, 1}, 'Powertrain'), ptGrid = g; end
 end
+
+%% Torque curve override (bottom of the Powertrain tab)
+nPt = numel(ptGrid.RowHeight);
+ptGrid.RowHeight = [ptGrid.RowHeight, {16, 28, 24, 26, 220, 44}];
+placeRow(uilabel(ptGrid, 'Text', ''), nPt + 1);
+placeRow(uilabel(ptGrid, 'Text', 'Motor torque curve override', 'FontWeight', 'bold'), nPt + 2);
+cbTorqueOverride = uicheckbox(ptGrid, 'Text', 'Use my own rpm vs torque curve instead of the calculated one', ...
+    'Value', inp.torque_override, 'ValueChangedFcn', @(src, ~) onTorqueOverride(src.Value));
+placeRow(cbTorqueOverride, nPt + 3);
+gCurveBtns = uigridlayout(ptGrid, [1 4]);
+gCurveBtns.Padding = [0 0 0 0];
+gCurveBtns.ColumnSpacing = 4;
+placeRow(gCurveBtns, nPt + 4);
+uibutton(gCurveBtns, 'Text', 'Load file...', 'ButtonPushedFcn', @(~, ~) onLoadCurve());
+uibutton(gCurveBtns, 'Text', 'Copy calculated', 'ButtonPushedFcn', @(~, ~) onCopyCalculatedCurve());
+uibutton(gCurveBtns, 'Text', 'Add row', 'ButtonPushedFcn', @(~, ~) onAddCurveRow());
+uibutton(gCurveBtns, 'Text', 'Delete row', 'ButtonPushedFcn', @(~, ~) onDeleteCurveRow());
+curveTable = uitable(ptGrid, 'ColumnName', {'Motor speed (rpm)', 'Motor torque (Nm)'}, 'RowName', {}, ...
+    'ColumnEditable', [true true], 'Data', inp.torque_override_curve, ...
+    'CellEditCallback', @(~, ~) onCurveEdited(), 'CellSelectionCallback', @(~, evt) onCurveSelect(evt));
+placeRow(curveTable, nPt + 5);
+placeRow(uilabel(ptGrid, 'WordWrap', 'on', 'FontColor', [0.4 0.4 0.4], 'Text', ...
+    ['Torque at the motor output shaft (motor efficiency already included). Load a .csv / .xlsx / .txt / .mat ' ...
+    'with rpm in the first column and Nm in the second. The last rpm is the rev limit.']), nPt + 6);
+curveSelRow = [];
 
 %% Hardpoint tabs
 tblF = makePointTab('Front Hardpoints', 'F');
@@ -322,15 +393,94 @@ end
                 h.Value = getInp(inp, scalarFields{k});
             end
         end
+        cbTorqueOverride.Value = inp.torque_override;
+        curveTable.Data = inp.torque_override_curve;
         recalc();
+    end
+
+    function onTorqueOverride(on)
+        if on && isempty(validCurveRows(curveTable.Data))
+            curveTable.Data = calculatedCurve();   % start from the model's curve so there is something to edit
+            inp.torque_override_curve = curveTable.Data;
+        end
+        inp.torque_override = on;
+        recalc();
+    end
+
+    function onCurveEdited()
+        inp.torque_override_curve = curveTable.Data;
+        if inp.torque_override, recalc(); end
+    end
+
+    function onCurveSelect(evt)
+        if isempty(evt.Indices), curveSelRow = []; else, curveSelRow = unique(evt.Indices(:, 1)); end
+    end
+
+    function onLoadCurve()
+        [f, pth] = uigetfile({'*.csv;*.txt;*.xlsx;*.xls;*.mat', 'Torque curve (*.csv, *.txt, *.xlsx, *.mat)'}, ...
+            'Choose an rpm vs torque curve');
+        figure(fig);
+        if isequal(f, 0), return, end
+        try
+            data = readCurveFile(fullfile(pth, f));
+        catch err
+            setStatus(['Could not read torque curve: ' err.message], 'error');
+            return
+        end
+        curveTable.Data = data;
+        inp.torque_override_curve = data;
+        inp.torque_override = true;
+        cbTorqueOverride.Value = true;
+        recalc();
+    end
+
+    function onCopyCalculatedCurve()
+        curveTable.Data = calculatedCurve();
+        onCurveEdited();
+    end
+
+    function onAddCurveRow()
+        d = curveTable.Data;
+        if isempty(d), d = zeros(0, 2); end
+        curveTable.Data = [d; NaN NaN];
+        inp.torque_override_curve = curveTable.Data;   % NaN rows are ignored until filled in
+    end
+
+    function onDeleteCurveRow()
+        d = curveTable.Data;
+        if isempty(d), return, end
+        rows = curveSelRow;
+        rows = rows(rows >= 1 & rows <= size(d, 1));
+        if isempty(rows), rows = size(d, 1); end
+        d(rows, :) = [];
+        curveTable.Data = d;
+        curveSelRow = [];
+        onCurveEdited();
+    end
+
+    function c = calculatedCurve()
+        % The model's motor torque curve (override off) at its full 100 rpm resolution,
+        % so copying it unchanged gives the same results as the calculated model
+        tmp = inp;
+        tmp.torque_override = false;
+        v = vehicle_model_calc(tmp);
+        keep = ~isnan(v.pt.motor_torque);
+        c = round([v.pt.motor_rpm(keep), v.pt.motor_torque(keep)] * 100) / 100;
+    end
+
+    function placeRow(h, row)
+        h.Layout.Row = row;
+        h.Layout.Column = [1 3];
     end
 
     function onExport()
         assignin('base', 'inp', inp);
         assignin('base', 'veh', veh);
         assignin('base', 'lap', lapRes);
+        assignin('base', 'lapLoads', lapLoads);
+        assignin('base', 'lapChannels', lapCh);
         assignin('base', 'lapBaseline', baseRes);
-        setStatus('Sent inp, veh, lap and lapBaseline to the base workspace.', 'ok');
+        setStatus('Sent inp, veh, lap, lapLoads, lapChannels and lapBaseline to the base workspace.', 'ok');
     end
 
     function onToggleOutputs()
@@ -398,8 +548,13 @@ end
         try
             lapRes = lap_sim(veh.ggv, file);
             lapInp = inp;
+            lapLoads = lap_loads(veh, lapRes);
+            lapCh = lap_channels(lapRes, lapLoads);
+            lapShockLim = [veh.x_shock_compressed, veh.x_shock_extended];
         catch err
             lapRes = [];
+            lapLoads = [];
+            lapCh = [];
             lapLabel.Text = ['Lap sim error: ' err.message];
             lapLabel.FontColor = [0.8 0 0];
             return
@@ -419,6 +574,7 @@ end
         baseRes = lapRes;
         baseInp = lapInp;
         baseFile = trackField.Value;
+        baseCh = lapCh;
     end
 
     function onSetBaseline()
@@ -428,7 +584,7 @@ end
     end
 
     function onClearBaseline()
-        baseRes = []; baseInp = []; baseFile = '';
+        baseRes = []; baseInp = []; baseFile = ''; baseCh = [];
         if strcmp(ddCompare.Value, 'Baseline sim'), ddCompare.Value = 'Logged lap'; end
         drawLap();
     end
@@ -478,11 +634,11 @@ end
         axis(axTrack, 'equal');
         grid(axTrack, 'on');
         cb = colorbar(axTrack);
-        cb.Label.String = 'Sim speed (m/s)';
+        cb.Label.String = 'vCar [m/s]';
         title(axTrack, 'Track (triangle = start)');
         xlabel(axTrack, 'X (m)'); ylabel(axTrack, 'Y (m)');
 
-        trace(axLapV, r.vCar, lg, 'v', 'Speed (m/s)');
+        trace(axLapV, r.vCar, lg, 'v', 'vCar [m/s]');
         hold(axLapV, 'on');
         %plot(axLapV, r.apex_s, r.vMaxAtApex, 'k.', 'MarkerSize', 6, 'DisplayName', 'Apex limit');
         hold(axLapV, 'off');
@@ -506,6 +662,8 @@ end
         linkaxes([axLapV axLapLat axLapLong axLapDt], 'x');
         xlim(axLapDt, [0 r.s(end)]);
 
+        drawLoads(strcmp(refName, 'Baseline') && overlay);
+
         function trace(ax, ySim, lgd, fld, yl)
             cla(ax);
             plot(ax, r.s, ySim, '-', 'Color', cSim, 'LineWidth', 1.3, 'DisplayName', 'Simulated');
@@ -519,6 +677,168 @@ end
             end
             grid(ax, 'on');
             ylabel(ax, yl);
+        end
+    end
+
+    function drawLoads(showBase)
+        if nargin > 0, loadsShowBase = showBase; end
+        if isempty(lapCh)
+            for a = axLd, cla(a); legend(a, 'off'); end
+            loadsTable.Data = {};
+            loadsNote.Text = '';
+            return
+        end
+        names = lapCh.Properties.VariableNames;
+        units = lapCh.Properties.VariableUnits;
+        unitOf = @(n) units{strcmp(names, n)};
+
+        % Keep the pickers in step with the channels this run has
+        if ~ismember(ddX.Value, names), xVal = 'Distance'; else, xVal = ddX.Value; end
+        ddX.Items = names;
+        ddX.Value = xVal;
+        lbCh.Items = names;
+        for p = 1:4, panelSel{p} = panelSel{p}(ismember(panelSel{p}, names)); end
+        lbCh.Value = panelSel{panelIdx()};
+
+        x = lapCh.(xVal);
+        asLine = ismember(xVal, {'Distance', 'Time', 'Logged time'});   % monotonic: draw lines
+        hasBase = loadsShowBase && ~isempty(baseCh) && height(baseCh) == height(lapCh);
+        shown = [];
+        for p = 1:4
+            a = axLd(p);
+            cla(a);
+            legend(a, 'off');
+            xlabel(a, '');
+            sel = panelSel{p};
+            if isempty(sel)
+                gLoadTraces.RowHeight{p} = 0;
+                a.Visible = 'off';
+                continue
+            end
+            gLoadTraces.RowHeight{p} = '1x';
+            a.Visible = 'on';
+            shown(end + 1) = p; %#ok<AGROW>
+            cc = lines(max(numel(sel), 1));
+            selUnits = cellfun(unitOf, sel, 'UniformOutput', false);
+            mixed = numel(unique(selUnits)) > 1;
+            hold(a, 'on');
+            for j = 1:numel(sel)
+                lbl = sel{j};
+                if mixed, lbl = sprintf('%s (%s)', sel{j}, selUnits{j}); end
+                y = lapCh.(sel{j});
+                if asLine
+                    plot(a, x, y, '-', 'Color', cc(j, :), 'LineWidth', 1, 'DisplayName', lbl);
+                else
+                    plot(a, x, y, '.', 'Color', cc(j, :), 'MarkerSize', 5, 'DisplayName', lbl);
+                end
+                if hasBase && ismember(sel{j}, baseCh.Properties.VariableNames) && ismember(xVal, baseCh.Properties.VariableNames)
+                    if asLine
+                        plot(a, baseCh.(xVal), baseCh.(sel{j}), '--', 'Color', cc(j, :), 'LineWidth', 0.8, ...
+                            'DisplayName', [lbl ' (baseline)']);
+                    else
+                        plot(a, baseCh.(xVal), baseCh.(sel{j}), 'o', 'Color', cc(j, :), 'MarkerSize', 2, ...
+                            'DisplayName', [lbl ' (baseline)']);
+                    end
+                end
+            end
+            if any(startsWith(sel, 'Shock length')) && ~isempty(lapShockLim)
+                yline(a, lapShockLim(2), 'r--', 'Extended', 'HandleVisibility', 'off', 'LabelHorizontalAlignment', 'left');
+                yline(a, lapShockLim(1), 'r--', 'Compressed', 'HandleVisibility', 'off', 'LabelHorizontalAlignment', 'left');
+            end
+            hold(a, 'off');
+            if mixed
+                ylabel(a, '');
+            elseif isscalar(sel)
+                ylabel(a, sprintf('%s (%s)', sel{1}, selUnits{1}));
+            else
+                ylabel(a, sprintf('(%s)', selUnits{1}));
+            end
+            grid(a, 'on');
+            axis(a, 'auto');
+            lgd = legend(a, 'Location', 'northoutside', 'Orientation', 'horizontal');
+            lgd.Box = 'off';
+        end
+        if ~isempty(shown)
+            xlabel(axLd(shown(end)), sprintf('%s (%s)', xVal, unitOf(xVal)));
+            if asLine
+                linkaxes(axLd(shown), 'x');
+                xlim(axLd(shown(end)), [min(x) max(x)]);
+            else
+                linkaxes(axLd, 'off');
+            end
+        end
+
+        % Min / max of every channel
+        fmt1 = @(v) arrayfun(@(y) sprintf('%.4g', y), v, 'UniformOutput', false);
+        M = lapCh.Variables;
+        loadsTable.Data = [names', fmt1(min(M, [], 1, 'omitnan'))', fmt1(max(M, [], 1, 'omitnan'))', units'];
+
+        % Warnings
+        msgs = {};
+        if ~isempty(lapLoads)
+            nLift = nnz(any(lapLoads.wheelLift, 1));
+            nBot = nnz(any(lapLoads.shockBottomed, 1));
+            nTop = nnz(any(lapLoads.shockTopped, 1));
+            nGround = nnz(lapLoads.FRH <= 0 | lapLoads.RRH <= 0);
+            if nLift, msgs{end + 1} = sprintf('Wheel lift at %d points.', nLift); end
+            if nBot, msgs{end + 1} = sprintf('Shock past fully compressed at %d points.', nBot); end
+            if nTop, msgs{end + 1} = sprintf('Shock past fully extended at %d points.', nTop); end
+            if nGround, msgs{end + 1} = sprintf('Ride height at or below 0 at %d points.', nGround); end
+        end
+        if isempty(msgs)
+            loadsNote.Text = 'No wheel lift, shock limits or ground contact around the lap.';
+            loadsNote.FontColor = [0.3 0.3 0.3];
+        else
+            loadsNote.Text = strjoin(msgs, ' ');
+            loadsNote.FontColor = [0.85 0.45 0];
+        end
+    end
+
+    function p = panelIdx()
+        p = find(strcmp(ddPanel.Items, ddPanel.Value), 1);
+    end
+
+    function onPanelPick()
+        lbCh.Value = panelSel{panelIdx()};
+    end
+
+    function onChannelPick()
+        panelSel{panelIdx()} = lbCh.Value;
+        drawLoads();
+    end
+
+    function onExportChannels()
+        if isempty(lapCh)
+            setStatus('Run the lap sim first - there are no lap channels to export.', 'warn');
+            return
+        end
+        [f, pth] = uiputfile({'*.csv', 'CSV (*.csv)'; '*.xlsx', 'Excel (*.xlsx)'; '*.mat', 'MATLAB table (*.mat)'}, ...
+            'Export lap channels', 'lap_channels.csv');
+        figure(fig);
+        if isequal(f, 0), return, end
+        exportChannels(fullfile(pth, f));
+    end
+
+    function exportChannels(file)
+        T = lapCh;
+        if cbExportPlotted.Value
+            keep = unique([{ddX.Value}, panelSel{:}], 'stable');
+            T = T(:, keep);
+        end
+        try
+            [~, ~, ext] = fileparts(file);
+            if strcmpi(ext, '.mat')
+                lapChannels = T;
+                save(file, 'lapChannels');
+            else
+                % Header = "channel [unit]"
+                T.Properties.VariableNames = strcat(T.Properties.VariableNames, ' [', T.Properties.VariableUnits, ']');
+                if isfile(file), delete(file); end   % writetable would otherwise only overwrite cells in an .xlsx
+                writetable(T, file);
+            end
+            setStatus(sprintf('Exported %d channels x %d points to %s', width(T), height(T), file), 'ok');
+        catch err
+            setStatus(['Export failed: ' err.message], 'error');
         end
     end
 
