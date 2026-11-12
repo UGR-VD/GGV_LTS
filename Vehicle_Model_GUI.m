@@ -185,9 +185,11 @@ uibutton(btnRow, 'Text', 'Send inp / veh to workspace', 'ButtonPushedFcn', @(~, 
 
 status = uilabel(left, 'Text', '', 'WordWrap', 'on');
 
-right = uigridlayout(main, [2 1]);
-right.RowHeight = {'2x', '1x'};
+right = uigridlayout(main, [3 1]);
+right.RowHeight = {'2x', 24, '1x'};
+right.RowSpacing = 4;
 plotTabs = uitabgroup(right);
+plotTabs.Layout.Row = 1;
 ax3 = makeAxes(plotTabs, '3D');
 axFF = makeAxes(plotTabs, 'Front view - front axle');
 axFR = makeAxes(plotTabs, 'Front view - rear axle');
@@ -236,8 +238,12 @@ baseInp = [];
 baseFile = '';
 view(ax3, -37.5, 30);
 
+btnOutToggle = uibutton(right, 'Text', [char(9662) ' Hide results table'], ...
+    'HorizontalAlignment', 'left', 'ButtonPushedFcn', @(~, ~) onToggleOutputs());
+btnOutToggle.Layout.Row = 2;
 outTable = uitable(right, 'ColumnName', {'Output', 'Front', 'Rear', 'Unit'}, 'RowName', {}, ...
     'ColumnEditable', false, 'ColumnWidth', {260, 'auto', 'auto', 80});
+outTable.Layout.Row = 3;
 
 %% Scalar input tabs
 scalarFields = {};
@@ -325,6 +331,18 @@ end
         assignin('base', 'lap', lapRes);
         assignin('base', 'lapBaseline', baseRes);
         setStatus('Sent inp, veh, lap and lapBaseline to the base workspace.', 'ok');
+    end
+
+    function onToggleOutputs()
+        if outTable.Visible
+            outTable.Visible = 'off';
+            right.RowHeight = {'1x', 24, 0};
+            btnOutToggle.Text = [char(9656) ' Show results table'];
+        else
+            outTable.Visible = 'on';
+            right.RowHeight = {'2x', 24, '1x'};
+            btnOutToggle.Text = [char(9662) ' Hide results table'];
+        end
     end
 
 %% ---------------- Update ----------------
