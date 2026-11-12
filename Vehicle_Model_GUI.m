@@ -23,14 +23,7 @@ scalarTabs = {
         'x_wheelbase',                'Wheelbase',                          'mm',    [];
         'x_trackF',                   'Front track width',                  'mm',    [];
         'x_trackR',                   'Rear track width',                   'mm',    []};
-    'Tyres & Springs', {
-        'k_TyreF_imperial',           'Front tyre spring rate',             'lb/in', [];
-        'k_TyreR_imperial',           'Rear tyre spring rate',              'lb/in', [];
-        'x_Tyre_diameterF_imperial',  'Front tyre outer diameter',          'in',    [];
-        'x_Tyre_diameterR_imperial',  'Rear tyre outer diameter',           'in',    [];
-        'x_Tyre_widthF',              'Front tyre width',                   'mm',    [];
-        'x_Tyre_widthR',              'Rear tyre width',                    'mm',    [];
-        'x_rim_offset',               'Rim offset',                         'mm',    [];
+    'Springs & Dampers', {
         'k_springF_imperial',         'Front spring rate',                  'lb/in', [];
         'k_springR_imperial',         'Rear spring rate',                   'lb/in', [];
         'r_MR_lowF',                  'Front low motion ratio',             '-',     [];
@@ -38,12 +31,9 @@ scalarTabs = {
         'MR_settingF',                'Front motion ratio setting',         '',      {'High', 'Low'};
         'r_MR_lowR',                  'Rear low motion ratio',              '-',     [];
         'r_MR_highR',                 'Rear high motion ratio',             '-',     [];
-        'MR_settingR',                'Rear motion ratio setting',          '',      {'High', 'Low'}};
-    'Dampers & Brakes', {
+        'MR_settingR',                'Rear motion ratio setting',          '',      {'High', 'Low'};
         'x_shock_extended',           'Shock fully extended length',        'mm',    [];
-        'x_shock_compressed',         'Shock fully compressed length',      'mm',    [];
-        'r_brake_splitF',             'Brake split front',                  '-',     [];
-        'brake_typeR',                'Rear brake type',                    '',      {'Outboard', 'Inboard'}};
+        'x_shock_compressed',         'Shock fully compressed length',      'mm',    []};
     'Roll & Heave Springs', {
         'ARB_settingF',               'Front ARB setting',                  '',      {'Detached', 'Soft', 'Medium', 'Hard'};
         'ARB_materialF',              'Front ARB material',                 '',      {'T45', '4130', 'Ti-6Al-4V', '7075-T6'};
@@ -79,20 +69,29 @@ scalarTabs = {
         'x_heave_armR',               'Rear heave moment arm',              'mm',    [];
         'x_heave_ODR',                'Rear heave outer diameter',          'mm',    [];
         'x_heave_IDR',                'Rear heave inner diameter',          'mm',    []};
-    'Tyre Model & Aero', {
+    'Tyres & Brakes', {
+        'k_TyreF_imperial',           'Front tyre spring rate',             'lb/in', [];
+        'k_TyreR_imperial',           'Rear tyre spring rate',              'lb/in', [];
+        'x_Tyre_diameterF_imperial',  'Front tyre outer diameter',          'in',    [];
+        'x_Tyre_diameterR_imperial',  'Rear tyre outer diameter',           'in',    [];
+        'x_Tyre_widthF',              'Front tyre width',                   'mm',    [];
+        'x_Tyre_widthR',              'Rear tyre width',                    'mm',    [];
+        'x_rim_offset',               'Rim offset',                         'mm',    [];
         'r_mu_lat_gradient',          'Lateral load sensitivity gradient',  '1/N',   [];
         'r_mu_lat_0',                 'Lateral friction coef @ 0 N',        '-',     [];
         'r_mu_lat_scale',             'Lateral scaling factor',             '-',     [];
         'r_mu_long_gradient',         'Longitudinal load sens. gradient',   '1/N',   [];
         'r_mu_long_0',                'Longitudinal friction coef @ 0 N',   '-',     [];
         'r_mu_long_scale',            'Longitudinal scaling factor',        '-',     [];
-        'drive_type',                 'Drive type',                         '',      {'RWD', 'AWD'};
+        'x_skidpad_radius',           'Skid pad radius',                    'm',     [];
+        'r_brake_splitF',             'Brake split front',                  '-',     [];
+        'brake_typeR',                'Rear brake type',                    '',      {'Outboard', 'Inboard'}};
+    'Aero', {
         'h_static_FRH',               'Static front ride height',           'mm',    [];
         'h_static_RRH',               'Static rear ride height',            'mm',    [];
         'rho_air',                    'Air density',                        'kg/m3', [];
         'x_aero_area',                'Aero reference area',                'm2',    [];
-        'x_skidpad_radius',           'Skid pad radius',                    'm',     [];
-        'aeromap_ClF(1)',            'Aeromap ClF c0',                  '-',     [];
+        'aeromap_ClF(1)',           'Aeromap ClF c0',                  '-',     [];
         'aeromap_ClF(2)',            'Aeromap ClF c1',                  '-',     [];
         'aeromap_ClF(3)',            'Aeromap ClF c2',                  '-',     [];
         'aeromap_ClF(4)',            'Aeromap ClF c3',                  '-',     [];
@@ -113,7 +112,8 @@ scalarTabs = {
         'aeromap_ClR(9)',            'Aeromap ClR c8',                  '-',     [];
         'aeromap_ClR(10)',            'Aeromap ClR c9',                  '-',     []};
     'Powertrain', {
-        'cell_type',                  'Cell type',                          '',      {'VTC6', 'P50B'};
+        'drive_type',                 'Drive type',                         '',      {'RWD', 'AWD'};
+        'cell_type',                 'Cell type',                          '',      {'VTC6', 'P50B'};
         'n_cells_series',             'Cells in series (per segment)',      '-',     [];
         'n_cells_parallel',           'Cells in parallel',                  '-',     [];
         'n_segments',                 'Segments',                           '-',     [];
