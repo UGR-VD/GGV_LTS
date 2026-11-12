@@ -127,6 +127,8 @@ inp.eff_gears = 0.98;                  % - (ignored with 1 gear)
 inp.eff_gearbox = 0.97;                % -
 inp.eff_other_drivetrain = 0.957;      % -
 inp.Nm_to_kW = 9548.8;                 % rpm conversion
+inp.torque_override = false;           % true = use torque_override_curve instead of the motor/accumulator model
+inp.torque_override_curve = zeros(0, 2); % [motor rpm, motor output torque (Nm)], after motor efficiency
 
 %% Acceleration simulation ('Acceleration' sheet)
 inp.powertrain_front = "None";         % "None" or "HV Powertrain" (only HV is modelled)
