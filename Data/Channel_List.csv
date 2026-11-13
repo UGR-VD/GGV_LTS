@@ -13,33 +13,57 @@ xFRH,m,mm,Front Ride Height,1000
 xRRH,m,mm,Rear Ride Height,1000
 FzTyreFL,N,N,Vertical Load on Front Left Tyre,1
 FzTyreFR,N,N,Vertical Load on Front Right Tyre,1
-FzTyreRL,N,N,Vertical Load on Right Left Tyre,1
+FzTyreRL,N,N,Vertical Load on Rear Left Tyre,1
 FzTyreRR,N,N,Vertical Load on Right Rear Tyre,1
 FzTyreF,N,N,Vertical Load on Front Axle,1
-FzTyreR,N,N,Vertical Load on Front Axle,1
+FzTyreR,N,N,Vertical Load on Rear Axle,1
 FxTyreFL,N,N,Longitudinal Load on Front Left Tyre,1
 FxTyreFR,N,N,Longitudinal Load on Front Right Tyre,1
-FxTyreRL,N,N,Longitudinal Load on Right Left Tyre,1
+FxTyreRL,N,N,Longitudinal Load on Rear Left Tyre,1
 FxTyreRR,N,N,Longitudinal Load on Right Rear Tyre,1
 FyTyreFL,N,N,Lateral  Load on Front Left Tyre,1
 FyTyreFR,N,N,Lateral Load on Front Right Tyre,1
-FyTyreRL,N,N,Lateral Load on Right Left Tyre,1
+FyTyreRL,N,N,Lateral Load on Rear Left Tyre,1
 FyTyreRR,N,N,Lateral Load on Right Rear Tyre,1
 CzF,-,-,Coefficient of Aero Vertical Load (Front Axle),1
 CzR,-,-,Coefficient of Aero Vertical Load (Rear Axle),1
 CzT,-,-,Coefficient of Aero Vertical Load (Total),1
 Cx,-,-,Coefficient of Drag,1
 rLoadTransfer,Decimal,Percentage,Ratio of Front/Rear Lateral Load Transfer,100
-xCornerSpringFL,m,mm,Displacement of Corner Sprint (Front Left),1000
-xCornerSpringFR,m,mm,Displacement of Corner Sprint (Front Right),1000
-xCornerSpringRL,m,mm,Displacement of Corner Sprint (Rear Left),1000
-xCornerSpringRR,m,mm,Displacement of Corner Sprint (Rear Right),1000
-FCornerSpringFL,m,mm,Force of Corner Sprint (Front Left),1
-FCornerSpringFR,m,mm,Force of Corner Sprint (Front Right),1
-FCornerSpringRL,m,mm,Force of Corner Sprint (Rear Left),1
-FCornerSpringRR,m,mm,Force of Corner Sprint (Rear Right),1
+xCornerSpringFL,m,mm,Displacement of Corner Spring (Front Left),1000
+xCornerSpringFR,m,mm,Displacement of Corner Spring (Front Right),1000
+xCornerSpringRL,m,mm,Displacement of Corner Spring (Rear Left),1000
+xCornerSpringRR,m,mm,Displacement of Corner Spring (Rear Right),1000
+FCornerSpringFL,N,N,Force of Corner Spring (Front Left),1
+FCornerSpringFR,N,N,Force of Corner Spring (Front Right),1
+FCornerSpringRL,N,N,Force of Corner Spring (Rear Left),1
+FCornerSpringRR,N,N,Force of Corner Spring (Rear Right),1
 xCornerRadius,m,m,Instantanous Cornering Radius,1
 MBrakeFL,Nm,Nm,Braking Torque Front Left,1
 MBrakeFR,Nm,Nm,Braking Torque Front Right,1
 MBrakeRL,Nm,Nm,Braking Torque Rear Left,1
 MBrakeRR,Nm,Nm,Braking Torque Rear Right,1
+FUprFwdLegFL,N,N,Force in the Upper Forward Suspension Member on the Front Left Corner. +ve is Tension,1
+FLwrFwdFL,N,N,Force in the Lower Forward Suspension Member on the Front Left Corner. +ve is Tension,1
+FUprRwdFL,N,N,Force in the Upper Rearward Suspension Member on the Front Left Corner. +ve is Tension,1
+FLwrRwdFL,N,N,Force in the Lower Rearward Suspension Member on the Front Left Corner. +ve is Tension,1
+FProdFL,N,N,Force in the Push/Pull Rod. Front Left Corner. +ve is tension.,1
+FTieRodFL,N,N,Force in the Tierod. Front Left Corner. +ve is tension.,1
+FUprFwdLegFR,N,N,Force in the Upper Forward Suspension Member on the Front Right Corner. +ve is Tension,1
+FLwrFwdFR,N,N,Force in the Lower Forward Suspension Member on the Front Right Corner. +ve is Tension,1
+FUprRwdFR,N,N,Force in the Upper Rearward Suspension Member on the Front Right Corner. +ve is Tension,1
+FLwrRwdFR,N,N,Force in the Lower Rearward Suspension Member on the Front Right Corner. +ve is Tension,1
+FProdFR,N,N,Force in the Push/Pull Rod. Front Right Corner. +ve is tension.,1
+FTieRodFR,N,N,Force in the Tierod. Front Right Corner. +ve is tension.,1
+FUprFwdLegRL,N,N,Force in the Upper Forward Suspension Member on the Rear Left Corner. +ve is Tension,1
+FLwrFwdRL,N,N,Force in the Lower Forward Suspension Member on the Rear Left Corner. +ve is Tension,1
+FUprRwdRL,N,N,Force in the Upper Rearward Suspension Member on the Rear Left Corner. +ve is Tension,1
+FLwrRwdRL,N,N,Force in the Lower Rearward Suspension Member on the Rear Left Corner. +ve is Tension,1
+FProdRL,N,N,Force in the Push/Pull Rod. Rear Left Corner. +ve is tension.,1
+FTieRodRL,N,N,Force in the Tierod. Rear Left Corner. +ve is tension.,1
+FUprFwdLegRR,N,N,Force in the Upper Forward Suspension Member on the Rear Right Corner. +ve is Tension,1
+FLwrFwdRR,N,N,Force in the Lower Forward Suspension Member on the Rear Right Corner. +ve is Tension,1
+FUprRwdRR,N,N,Force in the Upper Rearward Suspension Member on the Rear Right Corner. +ve is Tension,1
+FLwrRwdRR,N,N,Force in the Lower Rearward Suspension Member on the Rear Right Corner. +ve is Tension,1
+FProdRR,N,N,Force in the Push/Pull Rod. Rear Right Corner. +ve is tension.,1
+FTieRodRR,N,N,Force in the Tierod. Rear Right Corner. +ve is tension.,1
