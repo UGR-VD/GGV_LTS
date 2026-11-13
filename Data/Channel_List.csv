@@ -1,0 +1,45 @@
+﻿Channel Name,SI Unit,Engineering Unit,Desc.,SI to Engineering Conversion
+vCar,m/s,kph,Velocity of the Car,3.6
+gLat,m/s^^2,g,Lateral Acceleration,0.101936799
+gLong,m/s^^2,g,longitudinal Acceleration,0.101936799
+sLap,m,m,Distance travelled by car around the lap,1
+FAeroF,N,N,Vertical Load over the front axle due to Aerokit,1
+FAeroR,N,N,Vertical Load over the rear axle due to Aerokit,1
+FAeroTotal,N,N,Total Vertical Load due to Aerokit,1
+rAeroBal,Decimal,Percentage,Ratio of Front/Rear Aero Load,100
+aRoll,rad,Degrees,Roll Angle of Chassis (+ve is right-side-up),57.29577951
+aPitch,rad,Degrees,Pitch Angle of Chassis (+ve is front-side-down),57.29577951
+xFRH,m,mm,Front Ride Height,1000
+xRRH,m,mm,Rear Ride Height,1000
+FzTyreFL,N,N,Vertical Load on Front Left Tyre,1
+FzTyreFR,N,N,Vertical Load on Front Right Tyre,1
+FzTyreRL,N,N,Vertical Load on Right Left Tyre,1
+FzTyreRR,N,N,Vertical Load on Right Rear Tyre,1
+FzTyreF,N,N,Vertical Load on Front Axle,1
+FzTyreR,N,N,Vertical Load on Front Axle,1
+FxTyreFL,N,N,Longitudinal Load on Front Left Tyre,1
+FxTyreFR,N,N,Longitudinal Load on Front Right Tyre,1
+FxTyreRL,N,N,Longitudinal Load on Right Left Tyre,1
+FxTyreRR,N,N,Longitudinal Load on Right Rear Tyre,1
+FyTyreFL,N,N,Lateral  Load on Front Left Tyre,1
+FyTyreFR,N,N,Lateral Load on Front Right Tyre,1
+FyTyreRL,N,N,Lateral Load on Right Left Tyre,1
+FyTyreRR,N,N,Lateral Load on Right Rear Tyre,1
+CzF,-,-,Coefficient of Aero Vertical Load (Front Axle),1
+CzR,-,-,Coefficient of Aero Vertical Load (Rear Axle),1
+CzT,-,-,Coefficient of Aero Vertical Load (Total),1
+Cx,-,-,Coefficient of Drag,1
+rLoadTransfer,Decimal,Percentage,Ratio of Front/Rear Lateral Load Transfer,100
+xCornerSpringFL,m,mm,Displacement of Corner Sprint (Front Left),1000
+xCornerSpringFR,m,mm,Displacement of Corner Sprint (Front Right),1000
+xCornerSpringRL,m,mm,Displacement of Corner Sprint (Rear Left),1000
+xCornerSpringRR,m,mm,Displacement of Corner Sprint (Rear Right),1000
+FCornerSpringFL,m,mm,Force of Corner Sprint (Front Left),1
+FCornerSpringFR,m,mm,Force of Corner Sprint (Front Right),1
+FCornerSpringRL,m,mm,Force of Corner Sprint (Rear Left),1
+FCornerSpringRR,m,mm,Force of Corner Sprint (Rear Right),1
+xCornerRadius,m,m,Instantanous Cornering Radius,1
+MBrakeFL,Nm,Nm,Braking Torque Front Left,1
+MBrakeFR,Nm,Nm,Braking Torque Front Right,1
+MBrakeRL,Nm,Nm,Braking Torque Rear Left,1
+MBrakeRR,Nm,Nm,Braking Torque Rear Right,1
