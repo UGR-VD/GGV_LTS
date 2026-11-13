@@ -30,6 +30,11 @@ function L = lap_loads(veh, res)
 %   springTravel  4xN  coil spring / shock compression relative to static (mm, + = bump)
 %   shockLength   4xN  shock length (mm), from veh.x_shock_static*
 %   springForce   4xN  coil spring force (N)
+%   Fx, Fy        4xN  tyre longitudinal (+ = forward) and lateral (+ = to the left) force (N)
+%   brakeTorque   4xN  brake torque per wheel (Nm, + = braking)
+%   memberNames   1x6  {'UprFwdLeg','UprRwd','LwrFwd','LwrRwd','Prod','TieRod'}
+%   memberForce   1x6 cell of 4xN suspension member forces (N, + = tension)
+%   CdA           drag area (m^2), veh.CdA_accel (the lap sim has no drag model)
 %   shockBottomed, shockTopped, wheelLift   4xN logical flags
 %   summary       table of min / max per quantity
 
@@ -137,6 +142,66 @@ springForce = springStatic + kS .* springTravel;
 %% Pitch (+ = nose down) from the ride height change
 pitch = atand(((RH0(1) - FRH) - (RH0(2) - RRH)) / veh.x_wheelbase);
 
+%% Tyre forces [FL FR RL RR]
+% Axle totals: braking split by r_brake_splitF; drive all rear for RWD, by axle grip for AWD;
+% lateral by steady-state yaw balance (front axle = M*ay*wf).
+% Within an axle each tyre takes its share of Fz*mu(Fz) (the GGV tyre model).
+mu_lat = @(Fz) (veh.r_mu_lat_gradient * Fz + veh.r_mu_lat_0) * veh.r_mu_lat_scale;
+mu_long = @(Fz) (veh.r_mu_long_gradient * Fz + veh.r_mu_long_0) * veh.r_mu_long_scale;
+FzPos = max(Fz, 0);
+gripLong = FzPos .* mu_long(FzPos);
+gripLat = FzPos .* mu_lat(FzPos);
+
+FxTot = M * ax;
+FxAxleF = zeros(1, N); FxAxleR = zeros(1, N);
+FxAxleF(brk) = FxTot(brk) * veh.r_brake_splitF;
+FxAxleR(brk) = FxTot(brk) * (1 - veh.r_brake_splitF);
+if strcmp(veh.drive_type, "AWD")
+    shareF = axleShare(gripLong(1:2, :), gripLong(3:4, :));
+    FxAxleF(~brk) = FxTot(~brk) .* shareF(~brk);
+    FxAxleR(~brk) = FxTot(~brk) .* (1 - shareF(~brk));
+else
+    FxAxleR(~brk) = FxTot(~brk);
+end
+FyTot = M * ay;                          % + = to the left (+gLat = turning left)
+Fx = [FxAxleF .* wheelShare(gripLong(1:2, :)); FxAxleR .* wheelShare(gripLong(3:4, :))];
+Fy = [FyTot * wf .* wheelShare(gripLat(1:2, :)); FyTot * (1 - wf) .* wheelShare(gripLat(3:4, :))];
+
+%% Brake torque per wheel (Nm, + = braking), tyre force x static loaded radius
+Rl = [veh.x_LoadedRadiusF; veh.x_LoadedRadiusF; veh.x_LoadedRadiusR; veh.x_LoadedRadiusR];   % mm
+brakeTorque = zeros(4, N);
+brakeTorque(:, brk) = -Fx(:, brk) .* Rl / 1000;
+
+%% Suspension member forces (N, + = tension), 'Suspension Forces Master' method
+% Six two-force members per corner, equilibrium of the upright: sum(T_i * u_i) = F_tyre and
+% sum(p_i x T_i u_i) = sum(r x F_tyre), u_i = chassis -> upright unit vector.
+% Geometry is the +Y (outboard) side, mirrored for the other side, so Fy is taken outboard +ve.
+% Fy and Fz act at the contact patch. Fx acts at the contact patch for outboard brakes and at
+% the wheel centre for drive and inboard brakes (that torque goes into the driveshaft).
+memberNames = {'UprFwdLeg', 'UprRwd', 'LwrFwd', 'LwrRwd', 'Prod', 'TieRod'};
+memberForce = repmat({zeros(4, N)}, 1, 6);
+axleOf = 'FFRR';
+outSign = [1; -1; 1; -1];                % left corners: +Y is outboard (Fy left +ve)
+for k = 1:4
+    a = axleOf(k);
+    inb = [veh.(['uprfwd_outbrd' a]); veh.(['uprrwd_outbrd' a]); veh.(['lwrfwd_outbrd' a]); ...
+           veh.(['lwrrwd_outbrd' a]); veh.(['prod_inbrd' a]); veh.(['toe_inbrd' a])];
+    outb = [veh.(['upr_upright' a]); veh.(['upr_upright' a]); veh.(['lwr_upright' a]); ...
+            veh.(['lwr_upright' a]); veh.(['prod_outbrd' a]); veh.(['toe_outbrd' a])];
+    u = (outb - inb) ./ vecnorm(outb - inb, 2, 2);
+    A = [u'; cross(inb, u, 2)'];
+    cp = veh.(['tyre_ground' a]);
+    hub = cp + [0, 0, Rl(k)];
+    xAtHub = ~brk | (a == 'R' && strcmp(veh.brake_typeR, "Inboard"));
+    fx = Fx(k, :); fy = outSign(k) * Fy(k, :); fz = Fz(k, :);
+    rx = repmat(cp', 1, N); rx(:, xAtHub) = repmat(hub', 1, nnz(xAtHub));
+    Fcp = [zeros(1, N); fy; fz];
+    Mx = cross(rx, [fx; zeros(2, N)]);
+    rhs = [fx; fy; fz; Mx + cross(repmat(cp', 1, N), Fcp)];
+    T = A \ rhs;
+    for j = 1:6, memberForce{j}(k, :) = T(j, :); end
+end
+
 %% Pack
 L.s = res.s(:)';
 L.v = v; L.ax = ax; L.ay = ay;
@@ -156,6 +221,11 @@ L.tyreDefl = tyreDefl;
 L.springTravel = springTravel;
 L.shockLength = shockLength;
 L.springForce = springForce;
+L.Fx = Fx; L.Fy = Fy;
+L.brakeTorque = brakeTorque;
+L.memberNames = memberNames;
+L.memberForce = memberForce;
+L.CdA = veh.CdA_accel;
 L.shockBottomed = shockLength < veh.x_shock_compressed;
 L.shockTopped = shockLength > veh.x_shock_extended;
 L.wheelLift = Fz <= 0;
@@ -172,6 +242,20 @@ L.summary = makeSummary(L);
     end
 end
 
+
+function s = wheelShare(grip)
+% Share of each of an axle's two tyres (2xN), 50/50 where neither has grip
+tot = sum(grip, 1);
+s = grip ./ tot;
+s(:, tot <= 0) = 0.5;
+end
+
+function s = axleShare(gripF, gripR)
+% Front axle share of total grip (1xN)
+gF = sum(gripF, 1); gR = sum(gripR, 1);
+s = gF ./ (gF + gR);
+s(gF + gR <= 0) = 0.5;
+end
 
 function T = makeSummary(L)
 names = {}; mins = []; maxs = []; units = {};

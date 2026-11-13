@@ -241,8 +241,8 @@ lapCh = [];       % lap_channels table for lapRes + lapLoads (every channel, one
 baseCh = [];      % same for the baseline run
 lapShockLim = []; % [fully compressed, fully extended] shock length for lapRes (mm)
 loadsShowBase = false;
-panelSel = {{'Tyre load FL', 'Tyre load FR', 'Tyre load RL', 'Tyre load RR'}, ...
-    {'Front ride height', 'Rear ride height'}, {'Roll', 'Pitch'}, ...
+panelSel = {{'FzTyreFL', 'FzTyreFR', 'FzTyreRL', 'FzTyreRR'}, ...
+    {'xFRH', 'xRRH'}, {'aRoll', 'aPitch'}, ...
     {'Shock length FL', 'Shock length FR', 'Shock length RL', 'Shock length RR'}};
 
 % Lap channels tab: every lap sim / lap loads channel, user picks what to plot, and export
@@ -263,7 +263,7 @@ gX = uigridlayout(gLoadSide, [1 2]);
 gX.Padding = [0 0 0 0];
 gX.ColumnWidth = {70, '1x'};
 uilabel(gX, 'Text', 'X axis');
-ddX = uidropdown(gX, 'Items', {'Distance'}, 'Value', 'Distance', 'ValueChangedFcn', @(~, ~) drawLoads());
+ddX = uidropdown(gX, 'Items', {'sLap'}, 'Value', 'sLap', 'ValueChangedFcn', @(~, ~) drawLoads());
 gPanel = uigridlayout(gLoadSide, [1 2]);
 gPanel.Padding = [0 0 0 0];
 gPanel.ColumnWidth = {70, '1x'};
@@ -680,10 +680,17 @@ end
         end
     end
 
+    function clearLoadAxes(a)
+        % cla skips hidden handles, so also delete the shock limit ylines (HandleVisibility off)
+        cla(a);
+        delete(findall(a, 'Type', 'ConstantLine'));
+        legend(a, 'off');
+    end
+
     function drawLoads(showBase)
         if nargin > 0, loadsShowBase = showBase; end
         if isempty(lapCh)
-            for a = axLd, cla(a); legend(a, 'off'); end
+            for a = axLd, clearLoadAxes(a); end
             loadsTable.Data = {};
             loadsNote.Text = '';
             return
@@ -693,7 +700,7 @@ end
         unitOf = @(n) units{strcmp(names, n)};
 
         % Keep the pickers in step with the channels this run has
-        if ~ismember(ddX.Value, names), xVal = 'Distance'; else, xVal = ddX.Value; end
+        if ~ismember(ddX.Value, names), xVal = 'sLap'; else, xVal = ddX.Value; end
         ddX.Items = names;
         ddX.Value = xVal;
         lbCh.Items = names;
@@ -701,13 +708,12 @@ end
         lbCh.Value = panelSel{panelIdx()};
 
         x = lapCh.(xVal);
-        asLine = ismember(xVal, {'Distance', 'Time', 'Logged time'});   % monotonic: draw lines
+        asLine = ismember(xVal, {'sLap', 'tLap', 'Logged time'});   % monotonic: draw lines
         hasBase = loadsShowBase && ~isempty(baseCh) && height(baseCh) == height(lapCh);
         shown = [];
         for p = 1:4
             a = axLd(p);
-            cla(a);
-            legend(a, 'off');
+            clearLoadAxes(a);
             xlabel(a, '');
             sel = panelSel{p};
             if isempty(sel)
